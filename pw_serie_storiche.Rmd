@@ -1,6 +1,6 @@
 ---
 title: "ANALISI-SERIE-STORICHE"
-author: "Sara"Introduzione
+author: "Sara"
 date: "12 gennaio 2026"
 output: html_document
 ---
@@ -295,3 +295,4 @@ jarque.bera.test(res2)
 ```
 
 Si può pensare che siano entrambi distribuiti secondo una distribuzione normale.
+
