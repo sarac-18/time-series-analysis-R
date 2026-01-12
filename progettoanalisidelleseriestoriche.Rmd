@@ -1,0 +1,517 @@
+---
+title: "*Progetto analisi delle serie storiche*"
+
+author: "Sara Ciorba"
+
+date: "2024-05-19"
+
+output: 
+pdf_document:
+    toc: true
+    toc_depth: 2
+    
+
+    
+  # html_document:
+  #   toc: true
+  #   toc_depth: 2
+---
+
+```         
+```
+
+## Introduzione:
+
+Primo step, carichiamo le librerie:
+
+```{r message=FALSE, warning=FALSE}
+library(astsa)
+library(fBasics)
+library(forecast)
+library(ggplot2)
+library(lubridate)
+library(stats)
+library(tseries)
+library(urca)
+```
+
+Carichiamo il dataset:
+
+```{r}
+dirdata<-setwd("C:/Users/Ut1/Desktop/Resercizi")
+load(paste0(dirdata,"/dataset_08.Rdata"))
+class(y)
+
+```
+
+La tipologia di dato è gia di tipo time series, quindi non dobbiamo fare nessuno step successivo per modificarla.
+
+Grafico serie storica:
+
+```{r}
+plot(y, main="SERIE STORICA", xlab="tempo", ylab="valori di y" )
+```
+
+```{r}
+#il grafico mostra un andamento che non è tipico di una serie stazionaria. In più, non sembra che la serie abbia un andamento crescente, che faccia pensare a un trend
+```
+
+Estraiamo delle informazioni base:
+
+```{r}
+summary(y)
+```
+
+```{r}
+round(basicStats(y),digits=3)
+```
+
+Verifichiamo se il processo è integrato tramite i grafici di autocorrelazione:
+
+```{r}
+lag.plot(y, lag=12, diag.col = "green", type="p", do.lines = F, labels =F )
+```
+
+```{r}
+lag1.plot(y,12)
+```
+
+Entrambi grafici mostrano un'autocorrelazione molto evidente, coerente con l'ipotesi di assenza di stazionarietà osservata nel grafico sopra.
+
+Analiziamo l'autocorrelazione globale e parziale:
+
+```{r}
+op=par(mfrow=c(2,1))
+acf(y,lag.max=30,ylim=c(-1,1))
+pacf(y,lag.max=30,ylim=c(-1,1))
+```
+
+Guardando ai correlogrammi, notiamo ACF è persistente nel tempo e positiva, quindi , conferma l'ipotesi di autocorrelazione e questo ci può far pensare a un processo integrato di ordine 1.
+
+la PACF decresce,invece,in valore assoluto.
+
+## Identificazione del modello:
+
+Andiamo a sottoporre la serie storica analizzata a una verifica della sua stazionarietà, tramite l['Augmented Dickey-Fuller test]{.underline}, il quale è basato su tre alternative "trend", "drift" e "none" .
+
+Non possiamo considerare il test che considera il trend, poichè non sembra risultare dall'andamento della serie storica.
+
+Ci aspettiamo che i valori trovati tramite il test diano evidenza empirica sufficiente per rifiutare H0 (l'ipotesi di unit root e cioè di assenza di stazionarietà).
+
+```{r}
+summary(ur.df(y = y, type = 'none', selectlags = 'AIC'))
+```
+
+```{r}
+#H0:gamma=0 unit root non stazionario
+#H1:gamma<0 stazionario
+
+#in questo caso per i livelli di significatività del 5% e 10% si rifiuta l'ipotesi H0 di unit root e il processo è considerato stazionario. Invece, per livello di significatività dell'1% non abbiamo abbastanza evidenza empirica per rifiutare H0.
+```
+
+Poiché non abbiamo ottenuto un risultato coerente, passiamo al secondo step e consideriamo un processo con drift, cercando di capire se la situazione migliora.
+
+```{r}
+summary(ur.df(y = y, type = 'drift', selectlags = 'AIC'))
+```
+
+```{r}
+#H0:gamma=0 unit root non stazionario
+#H1:gamma<0 stazionario
+
+#in questo caso il risultato dipende dal livello significatività, quando questo è 10% o 5% rifiutiamo H0, quindi il processo può essere considerato stazionario, quando invece prendiamo in considerazione 1% allora in questo caso non possiamo rifiutare H0
+
+#H0:beta=0
+#H1:beta<0
+
+#anche qua, come prima, rifuitamo H0 per livelli di significatività del 10% e 5%. In questo caso si potrebbe quindi pensare che il processo è stazionario.
+```
+
+Il risultato continua a non darci un'informazione precisa. Quindi, decidiamo di considerare un livello di significatività del 1% e, proseguire con la differenziazione del processo integrato, per via delle informazione raccolte in precedenza tramite i correlogrammi e i grafici di autocorrelazione dei lag temporali.
+
+Per rendere un processo stazionario applichiamo l'operazione di differenziazione:
+
+```{r}
+y_diff=diff(y)
+
+op=par(mfrow=c(2,1))
+plot(y,xlab="time", ylab="y non stazionario")
+plot(y_diff,xlab="time", ylab="y differenziato")
+```
+
+```{r}
+plot(y_diff, main="serie storica differenziata", xlab="time", ylab="y differenziato")
+```
+
+```{r}
+#Ora l'andamento del grafico sembra essere stazionario, rispetto all'originario. Sembra avere un valore medio vicino allo 0.
+round(basicStats(y_diff),digits=3)
+```
+
+Una volta fatto ciò cerchiamo di capire, se quel problema di incertezza nell'evidenza empirica visto prima, adesso, si è risolto.
+
+Guardando all'andamento della serie possiamo passare anche direttamente al test senza costante e trend:
+
+```{r}
+summary(ur.df(y = y_diff, type = 'none', selectlags = 'AIC'))
+```
+
+Il processo pò essere considerato stazionario, secondo il risultato del test, poiché, qualsiasi sia il livello di significatività considerato, abbiamo sempre evidenza empirica **contro** l'ipotesi H0: di assenza di stazionarietà e unit root.
+
+## Stagionalità:
+
+Vediamo ora se c'è ancora autocorrelazione, e se abbiamo stagionalità:
+
+```{r}
+lag1.plot(y_diff, 20)
+```
+
+```{r}
+#l'autocorrelazione adesso è per ogni lag molto vicina allo 0, tranne per i primi due grafici dei ritardi 1 e 2, e non c'è alcuna stagionalità evidenziata dai grafici. Se ci fosse stata a cadenze regolari avremmo avuto un'autocorrelazione più elevata. 
+```
+
+```{r}
+op=par(mfrow=c(2,1))
+acf(y_diff,lag.max=30)
+pacf(y_diff,lag.max=30)
+```
+
+Dai correlogrammi non sembra esserci alcuna stagionalità, poiché a cadenze regolari non abbiamo alcuni picchi di autocorrelazione.
+
+Verifichiamo se ci sono degli outliers:
+
+```{r}
+outliers_list = tsoutliers(y_diff)
+outliers_list
+```
+
+```{r}
+#non ci sono outiliers
+```
+
+```{r}
+op=par(mfcol=c(2,2))
+acf(y)
+pacf(y)
+acf(y_diff)
+pacf(y_diff)
+```
+
+```{r}
+#Nella serie differenziata, notiamo come la ACF sia significativa per il 2^ ritardo (e diminuisce in valore assoluto anche se assumendo dei valori non statisticamente significativi), mentre la PACF è significativa nei primi ritardi e poi dimininuisce in valore assoluto. 
+#Si potrebbe ipotizzare un modello MA(2) oppure un ARMA(p,0,2), poiché non abbiamo una ACF che dopo il 2^ ritardo si annulla completamente diventando pari a zero, come vorrebbe la teoria
+```
+
+## Stima del modello: {#sec-stima-del-modello}
+
+Adesso passiamo alla stima del modello, dopo aver verificato la stazionarietà:
+
+```{r}
+arima_fit = auto.arima(y_diff, max.p = 10, max.q = 2, ic = "aic", seasonal = FALSE)
+arima_fit
+```
+
+```{r}
+#il modello che minimizza il criterio Aikaike è ARMA(2,2)
+```
+
+T-test per valutare la significatività statistica dei parametri:
+
+```{r}
+t_stat <- (arima_fit$coef)/sqrt(diag(arima_fit$var.coef))
+t_stat
+```
+
+```{r}
+#in questo caso notiamo come i primi due coefficienti per un livello di significatività del 5% non sono statisticamente significativi poiché minori del valore assoluto di 1.96.
+
+#Proviamo a vedere se con un altro criterio il risultato ottenuto è lo stesso.
+```
+
+Utiliziamo il criterio di informazione Bayesiano, che sappiamo essere maggiore di AIC per via della sua stessa formulazione.
+
+Ci aspettiamo di trovare un modello più parsimonioso, poiché il modello BIC penalizza maggiormente il numero dei parametri stimati.
+
+```{r}
+arima_fit2 = auto.arima(y_diff, max.p = 10, max.q = 3, ic = "bic", seasonal = FALSE, approximation = TRUE)
+arima_fit2
+```
+
+```{r}
+#In questo caso come output viene consigliato un altro modello MA(2),svolgiamo il t-test, per verificarne la significatività statistica
+```
+
+```{r}
+t_stat<-(arima_fit2$coef)/sqrt(diag(arima_fit2$var.coef))
+t_stat
+```
+
+```{r}
+#in questo caso sono entrambi statisticamente diversi da 0 anche per un livello di significatività dell'1%
+```
+
+Cambiando il criterio vengano stimati due modelli diversi, questo perchè è un caso limite.
+
+Continuiamo ad analizzare entrambi modelli per capire se c'è una differenza significativa dei risultati.
+
+## Analisi dei residui: {#sec-analisi-dei-residui}
+
+```{r}
+res1=arima_fit$residuals
+res2=arima_fit2$residuals
+
+op=par(mfrow=c(2,1))
+plot(res1,ylab="residui", xlab="tempo", main= "GRAFICO DEI RESIDUI ARMA(2,2)")
+plot(res2,ylab="residui", xlab="tempo", main= "GRAFICO DEI RESIDUI MA(2)")
+```
+
+Dal grafico sembra che i residui non seguano un pattern specifico.
+
+```{r}
+op=par(mfcol=c(2,1))
+acf(res1, main="ACF DEI RESIDUI ARMA(2,2)")
+pacf(res1, main="PACF DEI RESIDUI ARMA(2,2)")
+```
+
+Non sembra quindi esserci autocorrelazione.
+
+```{r}
+op=par(mfcol=c(2,1))
+acf(res2, main="ACF DEI RESIDUI MA(2)")
+pacf(res2, main="PACF DEI RESIDUI MA(2)")
+```
+
+Otteniamo lo stesso risultato ottenuto sopra per il modello ARMA(2,2).
+
+Ljung-Box test **ARMA(2,2):**
+
+```{r}
+Box.test(res1, lag=30, type="L", fitdf = 4)
+```
+
+```{r}
+#L'ipotesi H0 del test non viene respinta, quindi si può pensare a un'indipendenza dei residui
+```
+
+Ljung-Box test **MA(2):**
+
+```{r}
+Box.test(res2, lag=30, type="L", fitdf = 4)
+```
+
+```{r}
+#Anche se il risultato con ARMA ha un valore della statistica test più alto, comunque in entrambi i casi non abbiamo evidenza empirica sufficiente per rifiutare l'ipotesi di indipendenza seriale dei residui
+```
+
+Calcolo grafici di autocorrelazione del primo modello **Arma(2,2):**
+
+```{r}
+lag1.plot(res1, max.lag=20)
+```
+
+Calcolo grafici di autocorrelazione del secondo modello **Ma(2):**
+
+```{r}
+lag1.plot(res2, max.lag=20)
+```
+
+```{r}
+#non c'è autocorrelazione dei residui per entrambi i modelli
+```
+
+```{r}
+tsdiag(arima_fit,gof.lag=24)
+```
+
+```{r}
+tsdiag(arima_fit2,gof.lag=24)
+```
+
+```{r}
+#guardando ai p-values si nota come i risultati ottenuti sopra dai grafici, qui vengono confermati.
+```
+
+```{r}
+op=par(mfrow=c(2,1))
+hist(res1, freq=F, main="Istogramma residui modello ARMA(2,2)")
+qqnorm(res1) 
+qqline(res1)
+```
+
+```{r}
+op=par(mfrow=c(2,1))
+hist(res2, freq=F,main="Istogramma residui modello MA(2)")
+qqnorm(res2) 
+qqline(res2)
+```
+
+```{r}
+jarque.bera.test(res1)
+jarque.bera.test(res2)
+```
+
+Si può pensare che siano entrambi distribuiti secondo una distribuzione normale.
+
+```{r}
+#l'ipotesi di normalità fatta sopra non viene rifiutata dal test
+```
+
+## Previsione:
+
+Andiamo a fare i passaggi precedenti, ma andando a selezionare solo un parte della serie storica:
+
+```{r}
+n <- length(y_diff)
+h=250
+x <- ts(y_diff[1:(n-h)] )
+op=par(mfrow=c(2,1))
+acf(x)
+pacf(x)
+
+```
+
+```{r}
+#Guardando ai correlogrammi la tipologia di modello non sembra chiara, come prima, non possiamo individuare un solo modello
+```
+
+```{r}
+plot(x)
+```
+
+```{r}
+summary(ur.df(y=x, type = 'none', selectlags = 'AIC'))
+```
+
+```{r}
+#il modello continua ad essere stazionario
+```
+
+Andiamo a stimare il modello del training set:
+
+```{r}
+arima_fitT = auto.arima(x, max.p = 2,max.q = 2, ic = "aic", seasonal = TRUE)
+arima_fitT
+
+arima_fit2T = auto.arima(x, max.p = 2,max.q = 2, ic = "bic", seasonal = TRUE)
+arima_fit2T
+
+```
+
+```{r}
+#è stato stimato il modello con entrambi i criteri che continuano a dare gli stessi risultati visti in precedenza.
+```
+
+```{r}
+t_stat<-(arima_fitT$coef)/sqrt(diag(arima_fitT$var.coef))
+t_stat
+```
+
+```{r}
+#i coefficienti continuano ad essere statisticamente significativi, tranne per i primi due, che come prima non sono statisticamente significativi con alpha=5%.
+```
+
+```{r}
+t_stat2<-(arima_fit2T$coef)/sqrt(diag(arima_fit2T$var.coef))
+t_stat2
+```
+
+```{r}
+#come prima sono entrambi statisticamente significativi.
+```
+
+```{r}
+tsdiag(arima_fitT, gof.lag=30)
+```
+
+```{r}
+#andando a ridurre il campione notiamo che alcuni p-values tendono a diminuire di valore, ma comunque continuano ad essere maggiori di 0.
+```
+
+```{r}
+tsdiag(arima_fit2T, gof.lag=30)
+```
+
+```{r}
+#i risultati ottenuti con i due modelli sono molto simili, in questo caso però notiamo che il modello trovato con il criterio Bayesiano ha dei p-values per ritardi tra 25 e 30 più bassi dell'altro, quindi può essere visto come un peggioramento nella stima rispetto al secondo.
+```
+
+```{r}
+resT=arima_fitT$residuals
+lag1.plot(resT, max.lag=30)
+```
+
+```{r}
+res2T=arima_fit2T$residuals
+lag1.plot(res2T, max.lag=30)
+```
+
+```{r}
+#l'autocorrelazione dei residui continua ad essere 0 o comunque molto vicina a 0.
+```
+
+Calcoliamo la previsione dei limiti inferiore e superiore per entrambi i modelli:
+
+```{r}
+y_prev <- predict(arima_fitT, n.ahead = h)
+lim_inf <- y_prev$pred-1.96*y_prev$se
+lim_sup <- y_prev$pred+1.96*y_prev$se
+
+y_prev2 <- predict(arima_fit2T, n.ahead = h)
+lim_inf2 <- y_prev2$pred-1.96*y_prev2$se
+lim_sup2 <- y_prev2$pred+1.96*y_prev2$se
+
+
+
+```
+
+Calcoliamo gli intervalli di previsione sulla base dei valori stimati e sovrapponiamo questi ultimi alla serie storica:
+
+```{r}
+plot(y_diff, xlab = "tempo", ylab="valori di y", main="serie storica con intervallo di previsione ARMA(2,2)")
+
+lines(y_prev$pred, col=2)
+lines(lim_inf, col=6, lty=2)
+lines(lim_sup, col=6, lty=2)
+legend(500, 0.00, legend=c("osservazioni", "previsioni", "int. di confidenza"),
+col=c(1,2,6), lty=c(1,1,2)) 
+```
+
+```{r}
+plot(y_diff, xlab = "tempo", ylab="valori di y", main="serie storica con intervallo di previsione MA(2)")
+
+lines(y_prev2$pred, col=2)
+lines(lim_inf2, col=6, lty=2)
+lines(lim_sup2, col=6, lty=2)
+legend(500, 0.00, legend=c("osservazioni", "previsioni", "int. di confidenza"),
+col=c(1,2,6), lty=c(1,1,2)) 
+```
+
+Andiamo a calcolare la previsione in base all'intera serie storica:
+
+```{r}
+plot(forecast(arima_fit,h))
+```
+
+```{r}
+plot(forecast(arima_fit2,h))
+```
+
+```{r}
+#anche nella presione il risultato ottenuto è lo stesso per entrambi i modelli stimati.
+```
+
+## Conclusioni:
+
+Siamo partiti da una serie storica integrata e, grazie al metodo della differenziazione, l'abbiamo resa stazionaria. Successivamente siamo passati a verificarne la stagionalità, che non era presente.
+
+Poi, abbiamo idetificato il modello tramite una stima:
+
+1.  [Criterio Akaike]{.underline}: era il criterio con il valore minore, ma dava due parametri che non erano statisticamente significativi;
+
+2.  [Criterio Bayesiano]{.underline}: valore maggiore rispetto al primo, ma essendo un criterio più parsimonioso mi eliminava i due parametri non statisticamente significativi;
+
+Abbiamo verificato se i residui avessero un andamento casuale o se seguissero un pattern e, tramite i diversi test, è risultato che sono indipendenti e si distribuiscono secondo una normale.
+
+Infine, estraendo un training-set dalla serie storica abbiamo stimato nuovamente il modello e con i valori dei parametri abbiamo realizzato una stima puntuale e poi intervallare, creando un intervallo di previsione nel tempo.
+
+il risultato ottenuto è che: anche usando due modelli diversi, il risultato è stato lo stesso.
