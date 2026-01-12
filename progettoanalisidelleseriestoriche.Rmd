@@ -1,7 +1,7 @@
 ---
 title: "*Progetto analisi delle serie storiche*"
 
-author: "Sara Ciorba"
+author: "Sara"
 
 date: "2024-05-19"
 
@@ -515,3 +515,4 @@ Abbiamo verificato se i residui avessero un andamento casuale o se seguissero un
 Infine, estraendo un training-set dalla serie storica abbiamo stimato nuovamente il modello e con i valori dei parametri abbiamo realizzato una stima puntuale e poi intervallare, creando un intervallo di previsione nel tempo.
 
 il risultato ottenuto è che: anche usando due modelli diversi, il risultato è stato lo stesso.
+
