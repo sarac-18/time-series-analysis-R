@@ -15,8 +15,8 @@ The analysis follows a **standard and general workflow** for time series analysi
 
 ## Project Structure
 - `dataset_08.csv` : raw time series data 
-- `analysis.Rmd`   : main R Markdown file containing the analysis  
-- `analysis.html`  : rendered output  
+- `pw_serie_storiche.Rmd`   : main R Markdown file containing the analysis  
+- `pw_serie_storiche.html`  : rendered output  
 - `README.md`      : project description  
 
 ## Methodology
@@ -28,9 +28,13 @@ Finally, the selected model is used to generate point and interval forecasts.
 ## Tools and Libraries
 - R  
 - R Markdown  
+- astsa  
+- fBasics  
 - forecast  
-- tseries  
 - ggplot2  
+- lubridate  
+- tseries  
+- urca  
 
 ## Results
 The final model provides satisfactory predictive performance and highlights the main dynamics of the underlying time series.  
