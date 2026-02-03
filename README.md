@@ -1,10 +1,46 @@
-# time-series-analysis-R
-Questo progetto ha l'obiettivo di analizzare una serie storica "dataset_08", 
-utilizzando R. 
-Il progetto è stato sviluppato su Rmarkdown, poiché deriva da un task universitario.
+# Time Series Analysis and Forecasting with R
 
-**Contenuto degli script**:
+## Project Overview
+This project focuses on the analysis and forecasting of a univariate time series (*dataset_08*) using R.  
+The work was developed as part of a university assignment and implemented in R Markdown to ensure reproducibility and clarity of the analytical process.
 
-- verifica della stazionarietà della serie e pulizia dei dati (visualizzazione grafica e test preliminari di statistica descrittiva, autocorrelazione)
-- trasformazione in una serie stazionaria e stima del modello predittivo ( verifica della stazionarietà con test statistici e stima del modello con metodi alternativi)
-- analisi predittiva (puntuale e intervallare)
+The analysis follows a **standard and general workflow** for time series analysis and can be applied to different datasets with minimal modifications.
+
+## Objectives
+- Assess the stationarity of the time series  
+- Perform data cleaning and exploratory data analysis  
+- Transform the series into a stationary process  
+- Estimate and compare predictive models  
+- Produce point and interval forecasts  
+
+## Project Structure
+- `dataset_08.csv` : raw time series data 
+- `analysis.Rmd`   : main R Markdown file containing the analysis  
+- `analysis.html`  : rendered output  
+- `README.md`      : project description  
+
+## Methodology
+The analysis begins with exploratory data analysis, including graphical inspection, descriptive statistics, and autocorrelation analysis.  
+Stationarity is assessed and, when necessary, achieved through appropriate transformations.  
+Different modeling approaches are then estimated and compared.  
+Finally, the selected model is used to generate point and interval forecasts.
+
+## Tools and Libraries
+- R  
+- R Markdown  
+- forecast  
+- tseries  
+- ggplot2  
+
+## Results
+The final model provides satisfactory predictive performance and highlights the main dynamics of the underlying time series.  
+Forecasts are presented together with confidence intervals.
+
+## How to Run
+1. Clone the repository  
+2. Open the `.Rmd` file in RStudio  
+3. Install the required packages  
+4. Knit the document to HTML  
+
+## Notes
+This project was developed for academic purposes.
